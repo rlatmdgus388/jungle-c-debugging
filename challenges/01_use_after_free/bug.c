@@ -42,14 +42,29 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Widget 구조체
 typedef struct Widget Widget;
 
+// VTable 구조체
+// Widget *을 매개변수로 가지는 함수 포인터 render
+// Widget *, int를 매개변수로 가지는 함수 포인터 on_event
 typedef struct {
     void (*render)(Widget *self);
     void (*on_event)(Widget *self, int code);
 } VTable;
 
+// Widget 구조체
+// 
 struct Widget {
+    // const는 변수의 값을 프로그램에서 변경하지 못하도록 제한하는 c언어의 타입 한정자.
+    // const VTable   *   vtbl
+    //       ↑         ↑     ↑
+    //     타입        포인터  변수명
+    // vtbl = &some_vtable; (O)
+    // vtbl->render(self) (O)
+    //  읽어서 사용하는건 가능
+    // vtbl->render = another_render; (X)
+    //  vtbl을 통해 VTable 내부를 수정할 수 없음.
     const VTable *vtbl; 
     int id;
     int closed;
@@ -57,6 +72,10 @@ struct Widget {
 };
 
 #define MAX_WIDGETS 8
+// Screen 구조체
+// 멤버: 
+//  Widget *를 담는 items라는 포인터 배열
+//  int count
 typedef struct {
     Widget *items[MAX_WIDGETS];
     int count;
@@ -78,10 +97,11 @@ static void widget_noop_event(Widget *self, int code) { (void)self; (void)code; 
 /* 다이얼로그는 이벤트 코드 1(닫기)을 받으면 스스로 정리(파괴)된다 */
 static void dialog_on_event(Widget *self, int code);
 
-static const VTable BUTTON_VT = { button_render, widget_noop_event };
+static const VTable BUTTON_VT = { button_render, widget_noop_event };   // 
 static const VTable LABEL_VT  = { label_render,  widget_noop_event };
 static const VTable DIALOG_VT = { dialog_render, dialog_on_event  };
 
+// 반환형이 Widget *인 함수 widget_new
 static Widget *widget_new(const VTable *vt, int id, const char *label) {
 
     /* [Thinking Point]
@@ -92,11 +112,28 @@ static Widget *widget_new(const VTable *vt, int id, const char *label) {
     *   생각해보기: sizeof(Widget) 대신 sizeof *w 로 쓰면 어떤 장점이 있을까?
     */
     Widget *w = malloc(sizeof *w);
+
+    // perror() 마지막으로 발생한 시스템/라이브러리 오류를 사람이 읽을 수 있는 메시지로 출력하는 함수. stdio.h에 존재.
+    // free() 현재 실행 중인 프로그램을 즉시 종료하는 함수. stdlib.h에 존재.
+    //  0, 1은 상태 코드
+    //  exit(0): 정상적으로 종료, exit(1): 오류가 발생해서 종료.
+    // -> malloc()의 메모리 할당 성공 여부에 따라: malloc은 할당에 실패하면 NULL값을 반환함.
+    //   if w != NULL 통과
+    //   if w == NULL -> perror 오류 메시지 출력 -> exit(1) -> 강제종료
+
     if (!w) { perror("malloc"); exit(1); }
     w->vtbl = vt;
     w->id = id;
     w->closed = 0;
+    // strncpy(목적지, 원본, 복사할 최대 문자수)
+    // 예)
+    //  char src[] = "helllo";
+    //  char dest[10];
+    //  strncpy(dest, src, 5);
+
+    // 원본이 아무리 길어도 w->label에 널 문자를 제외한 sizeof(w->label) - 1까지밖에 못 담는다는 의미
     strncpy(w->label, label, sizeof(w->label) - 1);
+    // strncpy로 복사하는 경우 널 문자까지 복사를 안하는 경우도 있기 때문에 마지막 원소는 널 문자로 명시
     w->label[sizeof(w->label) - 1] = '\0';
     return w;
 }
@@ -120,6 +157,8 @@ static void screen_dispatch(Screen *s, int code) {
 static void screen_render(Screen *s) {
     for (int i = 0; i < s->count; i++) {
         Widget *w = s->items[i];
+        if (s->items[i] == NULL)
+            continue;
         w->vtbl->render(w);      
     }
 }
@@ -131,8 +170,10 @@ static void dialog_on_event(Widget *self, int code) {
     }
 }
 
+// 반환형이 char *인 app_build_status 함수
 static char *app_build_status(const char *text) {
-    char *msg = malloc(sizeof(Widget));   
+    char *msg = malloc(sizeof(Widget));  
+    // 메모리 할당에 실패하면 종료 
     if (!msg) exit(1);
 
     /* [테스트용 연출] 재사용한 메모리를 0xAB 로 '일부러' 덮어써서 오염시킨다.
@@ -140,14 +181,22 @@ static char *app_build_status(const char *text) {
      * 매번 똑같이(결정적으로) 재현하기 위해 인위적으로 채운다. 
      * glibc(리눅스) 환경 (tcache)에서만 유효하다. 환경&상황에 따라 msg는 새로운 주소로 할당될 수 있다.
      */
+
+     // memset: 메모리의 일정한 구간을 특정 값으로 채우는 함수
+     // memset(메모리주소, 채울값, 바이트수);
+     // 예: memset(arr, 0, sizeof(arr)); -> arr를 전부 0으로 채워라.
     memset(msg, 0xAB, sizeof(Widget));
+
+    // snprintf: 문자열을 만들어서 문자 배열에 저장하는 함수
+    // snprintf(목적지, 목적지크기, "문자열 형식", 값들...);
     snprintf(msg, sizeof(Widget), "STATUS: %s", text);
     return msg;
 }
 
 int main(void) {
+    // Screen 구조체 s의 count멤버를 0으로 초기화
     Screen s = { .count = 0 };
-
+    
     screen_add(&s, widget_new(&LABEL_VT,  10, "Welcome"));
     screen_add(&s, widget_new(&BUTTON_VT, 11, "OK"));
     screen_add(&s, widget_new(&DIALOG_VT, 12, "Are you sure?"));  /* items[2] */
@@ -158,11 +207,13 @@ int main(void) {
     screen_dispatch(&s, 1);
 
     /* TODO 닫힌(closed) 위젯을 여기서 정리(free + 해당 슬롯 NULL)할 필요가 있음 */
-
+    s.items[2] = NULL;
+    // status에 msg값(주소)를 복사해서 저장.
     char *status = app_build_status("dialog closed");
     printf("%s\n", status);
 
     printf("frame 2:\n");
+    // 여기가 문제지점
     screen_render(&s);           
 
     free(status);
