@@ -138,9 +138,9 @@ static Widget *widget_new(const VTable *vt, int id, const char *label) {
     return w;
 }
 
-static void widget_destroy(Widget *w) {
-    free(w);          
-}
+// static void widget_destroy(Widget *w) {
+//     free(w);          
+// }
 
 /* ── Screen ──────────────────────────────────────────────────── */
 static void screen_add(Screen *s, Widget *w) {
@@ -166,7 +166,7 @@ static void screen_render(Screen *s) {
 static void dialog_on_event(Widget *self, int code) {
     if (code == 1) {
         self->closed = 1;
-        widget_destroy(self);   
+        // widget_destroy(self);   
     }
 }
 
@@ -207,7 +207,14 @@ int main(void) {
     screen_dispatch(&s, 1);
 
     /* TODO 닫힌(closed) 위젯을 여기서 정리(free + 해당 슬롯 NULL)할 필요가 있음 */
-    s.items[2] = NULL;
+    for (int i = 0; i < s.count; i++)
+    {
+        if (s.items[i] && s.items[i]->closed)
+        {
+            free(s.items[i]);
+            s.items[i] == NULL;
+        }
+    }
     // status에 msg값(주소)를 복사해서 저장.
     char *status = app_build_status("dialog closed");
     printf("%s\n", status);
