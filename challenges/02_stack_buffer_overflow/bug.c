@@ -54,6 +54,7 @@
 #include <stdlib.h>
 
 #define ROWS 14
+// 14 * 15 / 2 = 105
 enum { SIZE = ROWS * (ROWS + 1) / 2 };   /* 0..ROWS-1 행을 담는 정확한 크기 */
 
 /* 행 i, 열 j 의 삼각 인덱스 */
@@ -63,7 +64,7 @@ static int tri_index(int i, int j) {
 
 /* 파스칼의 삼각형을 tri[] 에 채운다. */
 static void build_pascal(int *tri, int rows) {
-    for (int i = 0; i <= rows; i++) {
+    for (int i = 0; i < rows; i++) {
         for (int j = 0; j <= i; j++) {
             int idx = tri_index(i, j);
             if (j == 0 || j == i) {
@@ -90,10 +91,12 @@ static void print_row(const int *tri, int i) {
 }
 
 int main(void) {
+    // SIZE = 105
     int tri[SIZE];
 
+    // ROWS = 14
     build_pascal(tri, ROWS);          
-
+    
     for (int i = 0; i < ROWS; i++) print_row(tri, i);
 
     printf("SIZE = %d\n", SIZE);
