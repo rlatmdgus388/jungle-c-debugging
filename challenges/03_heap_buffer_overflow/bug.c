@@ -48,6 +48,10 @@ typedef struct {
      *          원소가 그보다 많아지거나 cap*sizeof(int) 계산이 커지면 int 는 오버플로된다.
      *   생각해보기: 크기를 int 로 두면 어떤 버그가 생길 수 있을까?
      */
+
+     // size_t: 메모리의 크기나 객체의 용량을 표현하기 위해 정의된 부호 없는(unsigned) 정수 타입.
+     // 보통 32비트나 64비트 환경 모두에서 4바이트(32비트)인 경우가 많다.
+     // size_t는 32비트(4바이트), 64비트 시스템에서는 64비트(8바이트)로 시스템의 주소 공간 크기에 맞춰 자동으로 크기가 조절.
     size_t len;
     size_t cap;
 } IntList;
@@ -62,10 +66,13 @@ static void list_init(IntList *l) {
 static void list_ensure(IntList *l, size_t need) {
     if (need <= l->cap) return;
 
+    // ?: 삼항 연산자(Ternary Operator). if-else문을 한 줄로 간결하게 줄여 쓸 때 사용.
+    // 조건식 ? 참일_때_값 : 거짓일_때_값
     size_t newcap = l->cap ? l->cap * 2 : 8;
     while (newcap < need) newcap *= 2;
 
-    int *p = realloc(l->data, l->cap * sizeof(int));
+    // realloc: 이미 malloc이나 calloc이 할당한 메모리의 크기를 변경한다.
+    int *p = realloc(l->data, newcap * sizeof(int));
     if (!p) { perror("realloc"); free(l->data); exit(1); }
 
     l->data = p;
@@ -74,6 +81,7 @@ static void list_ensure(IntList *l, size_t need) {
 
 static void list_push(IntList *l, int x) {
     if (l->len == l->cap) list_ensure(l, l->cap + 1);
+    // len++ (후위증가) 이므로 data에 x를 할당하고 len 증가.
     l->data[l->len++] = x;
 }
 
