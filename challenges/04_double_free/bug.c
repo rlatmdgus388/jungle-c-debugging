@@ -105,8 +105,9 @@ static void directory_dump(Directory *d) {
 
 static void directory_free(Directory *d) {
     for (int i = 0; i < d->count; i++) {
+        // 포인터 변수 자체를 없애는게 아니라, 그 포인터가 가리키고 있는 힙 메모리 자체를 해제함.
         free(d->by_id[i]);                 
-        d->by_id[i] == NULL;
+        d->by_id[i] = NULL;
     }
     d->count = 0;
 }
