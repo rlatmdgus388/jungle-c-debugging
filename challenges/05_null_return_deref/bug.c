@@ -53,9 +53,18 @@ static const char *cfg_get(const Config *c, const char *k) {
 }
 
 static void expand(const Config *c, const char *tmpl, char *out, size_t outcap) {
+    // out배열의 실시간 인덱스
     size_t o = 0;
+    // 초기식: char *p = tmpl, 조건식: *p (true or false로 판단)
+    // tmpl이란 문자열을 받고, char *p = 문자열의 첫 번째 원소를 가리키는 포인터(char * p = &tmpl[0])
+    // *p는 포인터가 가리키는 문자
+    // 문자열의 끝을 가리키는 널 문자 \0의 값은 0이다. 따라서 \0을 만나기 전까지의 문자열을 순회하는 코드
     for (const char *p = tmpl; *p; ) {
+        // p[0], p[1]은 현재 포인터가 가리키는 위치를 기준으로 몇 칸 떨어진 문자를 가져오는 표현
+        // p[0]: 현재 포인터가 가리키는 위치
+        // p[1]: 현재 포인터가 가리키는 위치에서 +1한 위치
         if (p[0] == '$' && p[1] == '{') {
+            // strchr: 문자열에서 특정 문자를 찾아서 그 문자의 주소를 반환. 없으면 NULL반환.
             const char *end = strchr(p, '}');
             if (!end) break;
             char key[32];
@@ -64,8 +73,12 @@ static void expand(const Config *c, const char *tmpl, char *out, size_t outcap) 
             memcpy(key, p + 2, kl);
             key[kl] = '\0';
 
-            const char *v = cfg_get(c, key);      
-            size_t vl = strlen(v);                 
+            const char *v = cfg_get(c, key);
+            if (!v) { p = end + 2; continue; }
+            size_t vl = strlen(v);
+            // void *memcpy(void *dest, const void *src, size_t n); -> 메모리 영역의 데이터를 그대로 복사하는 함수
+            // dest: 붙여넣기 할 메모리 주소, src: 복사할 데이터가 들어있는 메모리 주소, n: 복사할 데이터의 비트 수
+            // memcpy는 \0을 복사하지않음.
             if (o + vl < outcap) { memcpy(out + o, v, vl); o += vl; }
             p = end + 1;
         } else {
