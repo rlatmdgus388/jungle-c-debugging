@@ -50,8 +50,8 @@ typedef struct {
 
 #define MAXN 16
 typedef struct {
-    Rec *by_id[MAXN];     
-    Rec *by_name[MAXN];    
+    Rec *by_id[MAXN];  
+    Rec *by_name[MAXN];  
     int  count;
 } Directory;
 
@@ -76,7 +76,11 @@ static void directory_add(Directory *d, int id, const char *name) {
 static void directory_sort_by_name(Directory *d) {
     for (int i = 0; i < d->count; i++) {
         for (int j = i + 1; j < d->count; j++) {
-            if (strcmp(d->by_name[i]->name, d->by_name[j]->name) > 0) {
+            // strcmp(str1, str2): 두 문자열을 비교하는 C 언어 표준 라이브러리 함수
+            // 반환값: 0 -> 두 둔자열이 완전히 동일
+            // 반환값 > 0 -> str1이 사전 순으로 뒤에 있음.
+            // 반환값 < 0 -> str1이 사전 순으로 앞에 있음.
+            if (strcmp(d->by_name[i]->name, d->by_name[j]->name) > 0) {   // 앞에 있는 name이 사전 순으로 뒤애 위치한 경우
                 Rec *t = d->by_name[i];
                 d->by_name[i] = d->by_name[j];
                 d->by_name[j] = t;
@@ -101,11 +105,8 @@ static void directory_dump(Directory *d) {
 
 static void directory_free(Directory *d) {
     for (int i = 0; i < d->count; i++) {
-        free(d->by_id[i]->name);
         free(d->by_id[i]);                 
-    }
-    for (int i = 0; i < d->count; i++) {
-        free(d->by_name[i]);               
+        d->by_id[i] == NULL;
     }
     d->count = 0;
 }
@@ -123,7 +124,7 @@ int main(void) {
 
     Rec *r = find_by_id(&dir, 2);
     if (r) printf("lookup id=2 -> %s\n", r->name);
-
+    
     directory_free(&dir);                  
     printf("done\n");
     return 0;
